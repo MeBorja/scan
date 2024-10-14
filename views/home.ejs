@@ -1,0 +1,104 @@
+<%- include('partials/header'); -%>
+<script>
+  let API_KEY;
+
+  fetch('/api/config')
+    .then(response => response.json())
+    .then(data => {
+        API_KEY = data.apiKey;
+    })
+    .catch(error => console.error('Error fetching API key:', error));
+
+  let rankOne = [16, 48, 66, 67, 96, 111, 117, 159, 259, 263, 273, 297, 308, 321, 324, 341, 347, 461, 482, 517, 530, 567, 587, 674, 695, 723, 764, 772, 781, 790, 792, 843, 880, 885, 904, 948, 990];
+  let rankTwo = [109, 116, 134, 158, 168, 225, 338, 354, 356, 365, 370, 386, 406, 426, 433, 441, 483, 537, 542, 592, 607, 611, 651, 668, 673, 696, 730, 743, 820, 846, 856, 857, 870, 876, 878, 882, 898, 900, 925, 942, 946, 951, 953, 970, 998];
+  let rankPaw = [69, 148, 490, 704];
+
+  async function scan(rankArray, arrayName) {
+    const output = document.querySelector('.output');
+    for (const seed of rankArray) {
+      let endpoint = `https://csfloat.com/api/v1/listings?def_index=1&paint_index=1054&paint_seed=${seed}&max_float=0.37`;
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `${API_KEY}`
+          }
+        });
+
+        const data = await response.json();
+        if (data.length > 0) {
+          let num = data[0].price;
+          num = num.toString().slice(0, -1);
+          const skinOutput = `
+            <div class="item">
+              <br>
+              <strong>Item Name:</strong> ${data[0].item.market_hash_name}<br>
+              <strong>Price (NOK):</strong> <label id='price'>${num}kr</label> (NOT ACCURATE)<br>
+              <strong>Paint Seed:</strong> ${data[0].item.paint_seed} (${arrayName})<br>
+              <strong>Type:</strong> ${data[0].type}<br>
+              <strong>Link:</strong> <a href="https://csfloat.com/item/${data[0].id}" target="_blank"><label class='link'>View Item</label></a><br>
+              <strong>Inspect:</strong> <a href="${data[0].item.serialized_inspect}" target="_blank"><label class='link'>View Item</label></a><br>
+            </div>
+          `;
+          output.innerHTML += skinOutput;
+          console.log(data);
+          
+        } else if (data.message == "too many requests, try again later") {
+          const skinOutput = `
+            <div class="item">
+              <br>
+              <strong class='error'>${data.message}</strong>
+            </div>
+          `;
+          output.innerHTML += skinOutput;
+        } else {
+          const skinOutput = `
+         <div class="item">
+              <br>
+              <strong>No listings found for seed:</strong> ${seed} (${arrayName})<br>
+            </div>
+          `;
+          output.innerHTML += skinOutput;          
+        }
+      } catch (error) {
+        console.error('Error fetching listings:', error);
+        const skinOutput = `
+          <div class="item">
+            <br>
+            <strong>${error} fetching data for seed:</strong> ${seed} (${arrayName})<br>
+            <strong>${data.message}</strong>
+          </div>
+        `;
+        output.innerHTML += skinOutput;
+      }
+    }
+  }
+
+  async function runScans() {
+    const output = document.querySelector('.output');
+    output.innerHTML = '';
+    await scan(rankOne, 'Rank One');
+    await scan(rankTwo, 'Rank Two');
+    await scan(rankPaw, 'Rank Pawel');
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const button = document.querySelector('.button');
+    button.addEventListener('click', function () {
+      console.log('Button clicked'); 
+      runScans();
+      button.remove();
+    });
+  });
+</script>
+
+<div class="main">
+  <button class="button">SCAN NOW</button>
+  <p>MUST HAVE Cors anti blocker <a href="https://chromewebstore.google.com/detail/cors-unblock/lfhmikememgdcahcdlaciloancbhjino" target="blank" class="link">download here</a></p>
+  <p>Console:</p>
+</div>
+
+<div class="output"></div>
+
+<%- include('partials/footer'); -%>
